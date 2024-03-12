@@ -1,4 +1,4 @@
-import os, mimetypes, time
+import os, mimetypes, time, shutil
 
 class File:
     '''
@@ -12,3 +12,9 @@ class File:
         self.Size = stats.st_size
         filetime = time.localtime(stats.st_mtime)
         self.CreatedTime = time.strftime("%Y-%M-%d", filetime)
+    
+    def moveTo(self, pathTo: str):
+        '''
+        coraos.fs.type.file.File.moveTo
+        Move target file to another path.
+        '''
