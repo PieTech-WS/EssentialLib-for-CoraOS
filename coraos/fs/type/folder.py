@@ -1,4 +1,5 @@
 import os.path
+from file import File
 
 
 class Folder:
@@ -9,12 +10,33 @@ class Folder:
         else:
             raise FolderNotFound("Folder named {} can't be found.".format(path))
         self.path = os.path.abspath(path)
-    
+
     def is_empty(self):
         if len(os.listdir(self.path)) == 0:
             return True
 
-    def new_child_folder(self, name):
+    def searchFile(self, keyword: str, childfolder: bool = False):
+        """
+        Search in childfolder is not available.
+        """
+        files = os.listdir(self.path)
+        result = {}
+        for i in files:
+            if keyword in i:
+                path = "{}/{}".format(self.path, i)
+                try:
+                    result[i] = Folder(path)
+                except TypeERROR:
+                    result[i] = File(path)
+        return result
+
+    def checkFile(self, name: str):
+        result: dict = self.searchFile(name)
+        for i in result.keys():
+            if i == name:
+                return True
+
+    def newChildFolder(self, name):
         try:
             Folder("{}/{}".format(self.path, name))
         except FolderNotFound:
