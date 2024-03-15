@@ -22,6 +22,10 @@ class FileOps:
         with open(self.abspath, self.mode, encoding=self.encoding) as a:
             a.write(content)
 
+    def bWrite(self, content):
+        with open(self.abspath, self.mode) as a:
+            a.write(content)
+
     def Read(self):
         """
         Supported Modes:
@@ -32,7 +36,20 @@ class FileOps:
         :return FileContent
         """
         with open(self.abspath, self.mode, encoding=self.encoding) as a:
-            content = a.read()
+            content: bytes = a.read()
+        return content
+
+    def bRead(self):
+        """
+        Supported Modes:
+        r
+        r+
+        w+
+        a+
+        :return FileContent
+        """
+        with open(self.abspath, self.mode) as a:
+            content: bytes = a.read()
         return content
 
 
@@ -101,34 +118,74 @@ class File:
     def Write(self, content):
         self.FileIO.Write(content)
 
-    def sMove(self, pathTo: str, overwrite: bool = False, returnFile: bool = False):
+    def Move(self, pathTo: str, overwrite: bool = False, returnFile: bool = False, verify: bool = True):
         """
-        coraos.fs.type.file.File.sMove
-        Move target file to target path in a secure way.
+        coraos.fs.type.file.File.Move
+        Move target file to target path.
         """
         if self.FileIO is None:
             raise FileIO_NOT_FOUND("FileIO is not open. Please use 'File.Open' to open a FileIO")
         try:
-            content = self.FileIO.Read()
-            del content
+            self.LoadContent()
         except io.UnsupportedOperation:
             raise FileIO_MODE_ERROR("FileIO Mode is error. This operation requires w+ or r+ mode, but FileIO is "
                                     "currentlyin {}.".format(self.FileIO_info["Mode"]))
         targetPath = Folder(pathTo)
         # check files
         result = targetPath.checkFile(self.Name)
-        if result != None:
+        if result is not None:
             if overwrite:
                 targetFile = result
             else:
                 raise File_SecureMove_Check_ERROR("There is already a file with the same name in the target "
                                                   "directory, but overwrite is set to False")
-        else: targetFile = targetPath.newFile(self.Name)
+        else:
+            targetFile = targetPath.newFile(self.Name)
         targetFile.Open()
-        targetFile.LoadContent()
         targetFile.Write(self.Content)
         if returnFile:
             return targetFile
+
+    def sMove(self, pathTo: str, overwrite: bool = False, returnFile: bool = False, verify: bool = True):
+        """
+        coraos.fs.type.file.File.sMove
+        Move target file to target path in binary.
+        Using independent FileOps.
+        """
+        FileOps_ = FileOps(self.Path, "rb")
+        Content = FileOps_.bRead()
+        targetPath = Folder(pathTo)
+        # check files
+        result = targetPath.checkFile(self.Name)
+        if result is not None:
+            if overwrite:
+                targetFile = result
+            else:
+                raise File_SecureMove_Check_ERROR("There is already a file with the same name in the target "
+                                                  "directory, but overwrite is set to False")
+        else:
+            targetFile = targetPath.newFile(self.Name)
+        FileOps__ = FileOps(targetFile.Path, "rb+")
+        FileOps__.bWrite(Content)
+        Content_: bytes = FileOps__.bRead()
+        Content: bytes = FileOps_.bRead()
+        import hashlib
+        hash = hashlib.md5()
+        hash.update(Content)
+        hash_ = hash.hexdigest()
+        hash.update(Content_)
+        hash__ = hash.hexdigest()
+        print(hash_, hash__)
+        if hash__ != hash_:
+            raise Move_VerifyERROR("Cannot verify moved file.Try again.")
+        if returnFile:
+            return targetFile
+
+
+class Move_VerifyERROR(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+        self.message = message
 
 
 class TypeERROR(Exception):
