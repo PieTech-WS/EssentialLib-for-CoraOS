@@ -4,6 +4,38 @@ import os
 import time
 
 
+class FileOps:
+    def __init__(self, abspath: str, mode: str, encoding: str = "utf-8"):
+        self.abspath = abspath
+        self.mode = mode
+        self.encoding = encoding
+
+    def Write(self, content):
+        """
+        Supported Modes:
+        w
+        w+
+        r+
+        a
+        a+
+        """
+        with open(self.abspath, self.mode, encoding=self.encoding) as a:
+            a.write(content)
+
+    def Read(self):
+        """
+        Supported Modes:
+        r
+        r+
+        w+
+        a+
+        :return FileContent
+        """
+        with open(self.abspath, self.mode, encoding=self.encoding) as a:
+            content = a.read()
+        return content
+
+
 # coraos.fs.type.File
 def CreateFile(path: str):
     try:
@@ -60,39 +92,40 @@ class File:
         self.CreatedTime = time.localtime(stats.st_mtime)
 
     def Open(self, mode: str = "r+", encoding: str = "utf-8"):
-        self.FileIO = open(self.Path, mode, encoding=encoding)
+        self.FileIO = FileOps(self.Path, mode, encoding)
         self.FileIO_info = {"Mode": mode, "Encoding": encoding}
 
-    def Write(self, content):
-        self.FileIO.write(content)
+    def LoadContent(self):
+        self.Content = self.FileIO.Read()
 
-    def GetContent(self):
-        self.Content = self.FileIO.read()
+    def Write(self, content):
+        self.FileIO.Write(content)
 
     def sMove(self, pathTo: str, overwrite: bool = False, returnFile: bool = False):
         """
-        coraos.fs.type.file.File.smoveTo
+        coraos.fs.type.file.File.sMove
         Move target file to target path in a secure way.
         """
         if self.FileIO is None:
             raise FileIO_NOT_FOUND("FileIO is not open. Please use 'File.Open' to open a FileIO")
         try:
-            content = self.FileIO.read()
+            content = self.FileIO.Read()
             del content
         except io.UnsupportedOperation:
             raise FileIO_MODE_ERROR("FileIO Mode is error. This operation requires w+ or r+ mode, but FileIO is "
                                     "currentlyin {}.".format(self.FileIO_info["Mode"]))
         targetPath = Folder(pathTo)
         # check files
-        if targetPath.checkFile(self.Name):
+        result = targetPath.checkFile(self.Name)
+        if result != None:
             if overwrite:
-                pass
+                targetFile = result
             else:
                 raise File_SecureMove_Check_ERROR("There is already a file with the same name in the target "
                                                   "directory, but overwrite is set to False")
-        targetFile = targetPath.newFile(self.Name)
+        else: targetFile = targetPath.newFile(self.Name)
         targetFile.Open()
-        self.GetContent()
+        targetFile.LoadContent()
         targetFile.Write(self.Content)
         if returnFile:
             return targetFile
@@ -152,11 +185,11 @@ class Folder:
         result: dict = self.searchFile(name)
         for i in result.keys():
             if i == name:
-                return True
+                return File("{}/{}".format(self.Path, name))
+        return None
 
     def newFile(self, name: str):
-        CreateFile("{}/{}".format(self.Path, name))
-        return File(name)
+        return CreateFile("{}/{}".format(self.Path, name))
 
     def newChildFolder(self, name):
         try:
