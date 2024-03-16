@@ -173,9 +173,9 @@ class File:
         hash = hashlib.md5()
         hash.update(Content)
         hash_ = hash.hexdigest()
-        hash.update(Content_)
-        hash__ = hash.hexdigest()
-        print(hash_, hash__)
+        hash2 = hashlib.md5()
+        hash2.update(Content_)
+        hash__ = hash2.hexdigest()
         if hash__ != hash_:
             raise Move_VerifyERROR("Cannot verify moved file.Try again.")
         if returnFile:

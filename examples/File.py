@@ -1,6 +1,6 @@
 from coraos.fs.Type.basictype import File
 
-fp = File("test.json")
+fp = File("aaa.txt")
 fp.Open()
 fp.LoadContent()
 print(fp.Content)
